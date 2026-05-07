@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#7c3aed"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="PromptBot"/>
+<meta name="description" content="AI prompt generator for image and video creation tools"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="icon" type="image/png" href="icons/icon-192.png"/>
+<title>Prompt Writer Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #13131a;
+  --surface2: #1c1c26;
+  --border: rgba(124,58,237,0.2);
+  --border2: rgba(255,255,255,0.06);
+  --purple: #7c3aed;
+  --purple-light: #a78bfa;
+  --purple-glow: rgba(124,58,237,0.15);
+  --text: #f0eeff;
+  --text2: #8b85a8;
+  --text3: #5a5470;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 16px rgba(124,58,237,0.4);
+}
+.logo-text { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.logo-sub { font-size: 11px; color: var(--text2); font-weight: 400; }
+.reset-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text2);
+  font-size: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  padding: 7px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+.reset-btn:hover { border-color: var(--border); color: var(--text); }
+
+/* Chat */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-area::-webkit-scrollbar { width: 3px; }
+.chat-area::-webkit-scrollbar-track { background: transparent; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+.msg { display: flex; gap: 10px; align-items: flex-end; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+.msg.user { flex-direction: row-reverse; }
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.avatar.bot {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  box-shadow: 0 0 10px rgba(124,58,237,0.3);
+}
+.avatar.user {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 11px 14px;
+  font-size: 14px;
+  line-height: 1.65;
+  border-radius: var(--radius);
+}
+.msg.bot .bubble {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-bottom-left-radius: 4px;
+  color: var(--text);
+}
+.msg.user .bubble {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* Typing */
+.typing-dots { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--purple-light); animation: pulse 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,80%,100%{opacity:0.2;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+/* Prompts */
+.prompts-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 4px 0;
+  animation: fadeUp 0.4s ease;
+}
+.prompts-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--purple-glow);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--purple-light);
+}
+.prompt-card {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border2);
+}
+.prompt-card:last-child { border-bottom: none; }
+.prompt-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.label-left { display: flex; align-items: center; gap: 6px; }
+.label-icon { font-size: 14px; }
+.label-name { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+.label-tools { font-size: 11px; color: var(--text3); }
+.prompt-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--purple-light);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:active { background: var(--purple-glow); transform: scale(0.97); }
+.copy-btn.copied { color: var(--green); border-color: rgba(16,185,129,0.3); }
+
+/* Input */
+.input-area {
+  padding: 12px 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border2);
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  flex-shrink: 0;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+.input-wrap { flex: 1; position: relative; }
+textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--text);
+  resize: none;
+  outline: none;
+  max-height: 100px;
+  line-height: 1.5;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+textarea::placeholder { color: var(--text3); }
+textarea:focus { border-color: var(--border); }
+.send-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  box-shadow: 0 0 16px rgba(124,58,237,0.3);
+}
+.send-btn:active { transform: scale(0.93); }
+.send-btn:disabled { opacity: 0.4; box-shadow: none; }
+
+/* Install banner */
+.install-banner {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--purple-glow);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text2);
+}
+.install-banner.show { display: flex; }
+.install-btn {
+  margin-left: auto;
+  background: var(--purple);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Scrollbar for prompts */
+.chat-area { scroll-behavior: smooth; }
+</style>
+</head>
+<body>
+
+<div class="install-banner" id="installBanner">
+  <span>✨ Add to home screen for app experience</span>
+  <button class="install-btn" id="installBtn">Install</button>
+</div>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <div>
+      <div class="logo-text">Prompt Writer Bot</div>
+      <div class="logo-sub">AI-powered prompt generator</div>
+    </div>
+  </div>
+  <button class="reset-btn" id="resetBtn">↺ New chat</button>
+</div>
+
+<div class="chat-area" id="chatArea"></div>
+
+<div class="input-area">
+  <div class="input-wrap">
+    <textarea id="userInput" rows="1" placeholder="Describe your idea..."></textarea>
+  </div>
+  <button class="send-btn" id="sendBtn" aria-label="Send">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+  </button>
+</div>
+
+<script>
+const chatArea = document.getElementById('chatArea');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const resetBtn = document.getElementById('resetBtn');
+const installBanner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+
+let history = [];
+let deferredPrompt = null;
+
+const SYSTEM = `You are PromptWriter Bot — an expert AI prompt engineer. Help users craft professional prompts for AI image and video tools like Midjourney, DALL-E, Stable Diffusion, Sora, Runway, and Kling.
+
+STAGE 1 (greeting): Warmly greet user, ask them to describe their idea in simple words. Keep it short and friendly. Max 2 sentences.
+
+STAGE 2 (clarify): After user shares idea, ask 2-3 smart clarifying questions (numbered). Ask about: style/mood, purpose, specific details. Keep it conversational and brief.
+
+STAGE 3 (generate): After clarification, generate 3 professional prompts.
+
+Format STAGE 3 response EXACTLY like this:
+---PROMPTS_START---
+IMAGE_PROMPT: [detailed image generation prompt, 60-100 words, include style, lighting, mood, quality tags]
+VIDEO_PROMPT: [detailed video generation prompt, 60-100 words, include camera movement, pacing, mood]
+BONUS_PROMPT: [creative variation with unexpected twist, 60-100 words]
+---PROMPTS_END---
+
+Write a short friendly 1-sentence message before the markers.
+
+Rules: Be warm and encouraging. Never skip clarification. Prompts must be detailed and professional.`;
+
+function addMessage(role, text) {
+  const msg = document.createElement('div');
+  msg.className = `msg ${role}`;
+  const av = document.createElement('div');
+  av.className = `avatar ${role}`;
+  av.textContent = role === 'bot' ? '✦' : 'U';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  msg.appendChild(av);
+  msg.appendChild(bubble);
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function addTyping() {
+  const msg = document.createElement('div');
+  msg.className = 'msg bot';
+  msg.id = 'typing';
+  const av = document.createElement('div');
+  av.className = 'avatar bot';
+  av.textContent = '✦';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = '<div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>';
+  msg.appendChild(av);
+  msg.appendChild(bubble);
+  chatArea.appendChild(msg);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing');
+  if (t) t.remove();
+}
+
+function parsePrompts(text) {
+  const s = text.indexOf('---PROMPTS_START---');
+  const e = text.indexOf('---PROMPTS_END---');
+  if (s === -1 || e === -1) return null;
+  const block = text.substring(s + 19, e).trim();
+  const im = block.match(/IMAGE_PROMPT:\s*([\s\S]*?)(?=VIDEO_PROMPT:|$)/);
+  const vi = block.match(/VIDEO_PROMPT:\s*([\s\S]*?)(?=BONUS_PROMPT:|$)/);
+  const bo = block.match(/BONUS_PROMPT:\s*([\s\S]*?)$/);
+  return {
+    image: im ? im[1].trim() : '',
+    video: vi ? vi[1].trim() : '',
+    bonus: bo ? bo[1].trim() : ''
+  };
+}
+
+function showPrompts(prompts) {
+  const section = document.createElement('div');
+  section.className = 'prompts-section';
+  section.innerHTML = `<div class="prompts-header"><span>✦</span> Your AI Prompts — Ready to use!</div>`;
+
+  const items = [
+    { icon: '🖼️', name: 'Image Prompt', tools: 'Midjourney · DALL-E · Stable Diffusion', text: prompts.image },
+    { icon: '🎬', name: 'Video Prompt', tools: 'Sora · Runway · Kling', text: prompts.video },
+    { icon: '✨', name: 'Bonus Creative', tools: 'Any AI tool', text: prompts.bonus }
+  ];
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'prompt-card';
+    card.innerHTML = `
+      <div class="prompt-label">
+        <div class="label-left">
+          <span class="label-icon">${item.icon}</span>
+          <span class="label-name">${item.name}</span>
+          <span class="label-tools">${item.tools}</span>
+        </div>
+      </div>
+      <div class="prompt-text">${item.text}</div>
+      <button class="copy-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy prompt
+      </button>
+    `;
+    const btn = card.querySelector('.copy-btn');
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(item.text).then(() => {
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy prompt`;
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    });
+    section.appendChild(card);
+  });
+
+  chatArea.appendChild(section);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+async function callAPI(userText) {
+  history.push({ role: 'user', content: userText });
+  addTyping();
+  sendBtn.disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: history
+      })
+    });
+    const data = await res.json();
+    const reply = data.content.map(b => b.text || '').join('');
+    removeTyping();
+
+    const prompts = parsePrompts(reply);
+    if (prompts) {
+      const pre = reply.substring(0, reply.indexOf('---PROMPTS_START---')).trim();
+      if (pre) addMessage('bot', pre);
+      showPrompts(prompts);
+    } else {
+      addMessage('bot', reply);
+    }
+    history.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    removeTyping();
+    addMessage('bot', 'Oops! Something went wrong. Please check your internet and try again.');
+  }
+  sendBtn.disabled = false;
+}
+
+function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text || sendBtn.disabled) return;
+  addMessage('user', text);
+  userInput.value = '';
+  userInput.style.height = 'auto';
+  callAPI(text);
+}
+
+function reset() {
+  history = [];
+  chatArea.innerHTML = '';
+  init();
+}
+
+// Auto-resize textarea
+userInput.addEventListener('input', () => {
+  userInput.style.height = 'auto';
+  userInput.style.height = Math.min(userInput.scrollHeight, 100) + 'px';
+});
+
+userInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+sendBtn.addEventListener('click', sendMessage);
+resetBtn.addEventListener('click', reset);
+
+// PWA install
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBanner.classList.add('show');
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBanner.classList.remove('show');
+});
+
+window.addEventListener('appinstalled', () => {
+  installBanner.classList.remove('show');
+});
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+async function init() {
+  sendBtn.disabled = true;
+  addTyping();
+  history.push({ role: 'user', content: 'Hello, start the session.' });
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 200,
+        system: SYSTEM,
+        messages: history
+      })
+    });
+    const data = await res.json();
+    const reply = data.content.map(b => b.text || '').join('');
+    removeTyping();
+    addMessage('bot', reply);
+    history.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    removeTyping();
+    addMessage('bot', "Hi! I'm Prompt Writer Bot ✦ Describe your idea in simple words and I'll craft professional prompts for any AI image or video tool!");
+  }
+  sendBtn.disabled = false;
+}
+
+init();
+</script>
+</body>
+</html>
